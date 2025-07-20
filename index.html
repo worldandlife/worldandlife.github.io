@@ -65,7 +65,14 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const userMarker = L.marker([47.2162, 39.7084]).addTo(map).bindPopup('Вы здесь').openPopup();
+      // Геолокация пользователя
+    map.locate({setView: true, maxZoom: 15});
+    function onLocationFound(e) {
+      L.marker(e.latlng).addTo(map).bindPopup("Вы здесь").openPopup();
+    }
+    map.on('locationfound', onLocationFound);
+
+    //const userMarker = L.marker([47.2162, 39.7084]).addTo(map).bindPopup('Вы здесь').openPopup();
 
     const businesses = [
       { name: "Пекарня Вкусно", category: "еда", coords: [47.2181, 39.7105] },
