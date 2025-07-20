@@ -1,29 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ПикПик</title>
+  <title>ПикПик MVP</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    #map { height: 100vh; }
-    .filter-buttons { position: absolute; top: 10px; left: 10px; z-index: 1000; }
-    .filter-buttons button { margin: 2px; padding: 6px; font-size: 14px; }
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 70vh; }
+    .filter-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 16px;
+    }
+    .filter-buttons button {
+      margin: 6px;
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+    }
+    .section {
+      padding: 24px;
+      background: #f9f9f9;
+    }
+    .biz-card {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
+  <div id="map"></div>
+
   <div class="filter-buttons">
-    <button onclick="filterMarkers('all')">Все</button>
+    <button onclick="filterMarkers('all')" style="background-color: gray;">Все</button>
     <button onclick="filterMarkers('еда')" style="background-color: red;">Еда</button>
     <button onclick="filterMarkers('авто')" style="background-color: blue;">Авто</button>
     <button onclick="filterMarkers('красота')" style="background-color: green;">Красота</button>
     <button onclick="filterMarkers('услуги')" style="background-color: orange;">Услуги</button>
     <button onclick="filterMarkers('здоровье')" style="background-color: purple;">Здоровье</button>
   </div>
-  <div id="map"></div>
+
+  <div class="section">
+    <h2>Предложения рядом с вами</h2>
+    <div class="biz-card"><strong>Пекарня Вкусно</strong><br>Категория: Еда</div>
+    <div class="biz-card"><strong>Автомойка Быстрая</strong><br>Категория: Авто</div>
+    <div class="biz-card"><strong>Салон Красоты 'Шик'</strong><br>Категория: Красота</div>
+    <div class="biz-card"><strong>Копи-центр 'Печать+'</strong><br>Категория: Услуги</div>
+    <div class="biz-card"><strong>Клиника 'Здоровье'</strong><br>Категория: Здоровье</div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([47.2162, 39.7084], 15); // Александровка / пр-т 40 лет Победы
+    const map = L.map('map').setView([47.2162, 39.7084], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
