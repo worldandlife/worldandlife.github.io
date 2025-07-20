@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ПикПик MVP Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; }
+    .filter-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .filter-bar button {
+      margin: 5px;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="filter-bar">
+  <button style="background: red; color: white" onclick="filterMarkers('еда')">Еда</button>
+  <button style="background: green; color: white" onclick="filterMarkers('авто')">Авто</button>
+  <button style="background: blue; color: white" onclick="filterMarkers('красота')">Красота</button>
+  <button onclick="filterMarkers('все')">Показать все</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([55.751244, 37.618423], 13); // Москва по умолчанию
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Примерные точки
+  const places = [
+    { name: "Пиццерия Маргарита", coords: [55.751, 37.618], category: "еда", color: "red" },
+    { name: "Автомойка ЧистоCar", coords: [55.753, 37.620], category: "авто", color: "green" },
+    { name: "Салон красоты Bella", coords: [55.749, 37.615], category: "красота", color: "blue" },
+  ];
+
+  const markers = [];
+
+  places.forEach(place => {
+    const marker = L.circleMarker(place.coords, {
+      radius: 10,
+      color: place.color,
+      fillColor: place.color,
+      fillOpacity: 0.8
+    }).bindPopup(`<b>${place.name}</b><br>Категория: ${place.category}`);
+    marker.category = place.category;
+    marker.addTo(map);
+    markers.push(marker);
+  });
+
+  // Геолокация пользователя
+  map.locate({setView: true, maxZoom: 15});
+  function onLocationFound(e) {
+    L.marker(e.latlng).addTo(map).bindPopup("Вы здесь").openPopup();
+  }
+  map.on('locationfound', onLocationFound);
+
+  // Фильтрация по категориям
+  function filterMarkers(category) {
+    markers.forEach(marker => {
+      if (category === 'все' || marker.category === category) {
+        marker.addTo(map);
+      } else {
+        map.removeLayer(marker);
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
