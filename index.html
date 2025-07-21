@@ -1,117 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>ПикПик MVP</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <title>ПикПик Городская Карта</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
   <style>
-    body { margin: 0; font-family: sans-serif; }
-    #map { height: 70vh; }
-    .filter-buttons {
+    body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
+    #map { width: 100%; height: 400px; }
+    .filters {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
-      margin: 16px;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: white;
     }
-    .filter-buttons button {
-      margin: 6px;
-      padding: 10px 16px;
-      font-size: 14px;
+    .filters button {
+      padding: 8px 14px;
+      border-radius: 20px;
       border: none;
-      border-radius: 8px;
+      font-weight: bold;
       cursor: pointer;
       color: white;
     }
-    .section {
-      padding: 24px;
-      background: #f9f9f9;
+    .cafe { background-color: #8B4513; }
+    .beauty { background-color: deeppink; }
+    .fruit { background-color: green; }
+    .section { background-color: blue; }
+    .mystery { background-color: black; }
+
+    .locations {
+      padding: 15px;
     }
-    .biz-card {
+    .card {
       background: white;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card .title {
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
 
-  <div class="filter-buttons">
-    <button onclick="filterMarkers('all')" style="background-color: gray;">Все</button>
-    <button onclick="filterMarkers('еда')" style="background-color: red;">Еда</button>
-    <button onclick="filterMarkers('авто')" style="background-color: blue;">Авто</button>
-    <button onclick="filterMarkers('красота')" style="background-color: green;">Красота</button>
-    <button onclick="filterMarkers('услуги')" style="background-color: orange;">Услуги</button>
-    <button onclick="filterMarkers('здоровье')" style="background-color: purple;">Здоровье</button>
-  </div>
+<div id="map"></div>
 
-  <div class="section">
-    <h2>Предложения рядом с вами</h2>
-    <div class="biz-card"><strong>Пекарня Вкусно</strong><br>Категория: Еда</div>
-    <div class="biz-card"><strong>Автомойка Быстрая</strong><br>Категория: Авто</div>
-    <div class="biz-card"><strong>Салон Красоты 'Шик'</strong><br>Категория: Красота</div>
-    <div class="biz-card"><strong>Копи-центр 'Печать+'</strong><br>Категория: Услуги</div>
-    <div class="biz-card"><strong>Клиника 'Здоровье'</strong><br>Категория: Здоровье</div>
-  </div>
+<div class="filters">
+  <button onclick="showAll()" style="background-color: gray;">📍 Все</button>
+  <button class="cafe" onclick="filterMarkers('cafe')">☕ Кафе</button>
+  <button class="beauty" onclick="filterMarkers('beauty')">💅 Красота</button>
+  <button class="fruit" onclick="filterMarkers('fruit')">🍎 Фрукты/овощи</button>
+  <button class="section" onclick="filterMarkers('section')">🏃‍♂️ Секции</button>
+  <button class="mystery" onclick="filterMarkers('mystery')">❓ Инкогнито</button>
+</div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([47.2162, 39.7084], 15);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+<div class="locations">
+  <h2>📍 Предложения рядом:</h2>
+  <div class="card"><span class="title">☕ КофеЛавка</span><br>Лучший капучино в районе</div>
+  <div class="card"><span class="title">💅 Салон "Лайм"</span><br>Маникюр и стрижки</div>
+  <div class="card"><span class="title">🍎 ЭкоЛавка</span><br>Фрукты и овощи от фермеров</div>
+  <div class="card"><span class="title">🏃‍♂️ Футбол-Детям</span><br>Детская футбольная секция</div>
+  <div class="card"><span class="title">❓ Инкогнито</span><br>Проверь точку и получи 🎁 ПикПик-бонус</div>
+</div>
 
-      // Геолокация пользователя
-    map.locate({setView: true, maxZoom: 15});
-    function onLocationFound(e) {
-      L.marker(e.latlng).addTo(map).bindPopup("Вы здесь").openPopup();
+<script>
+  let map;
+  let markers = [];
+
+  const locations = [
+    {
+      coords: [47.2547, 39.7239],
+      category: 'cafe',
+      title: 'КофеЛавка',
+      desc: 'Лучший капучино в районе',
+      color: '#8B4513'
+    },
+    {
+      coords: [47.2555, 39.7245],
+      category: 'beauty',
+      title: 'Салон "Лайм"',
+      desc: 'Маникюр и стрижки',
+      color: 'deeppink'
+    },
+    {
+      coords: [47.2563, 39.7255],
+      category: 'fruit',
+      title: 'ЭкоЛавка',
+      desc: 'Фрукты и овощи от фермеров',
+      color: 'green'
+    },
+    {
+      coords: [47.2540, 39.7262],
+      category: 'section',
+      title: 'Футбол-Детям',
+      desc: 'Детская футбольная секция',
+      color: 'blue'
+    },
+    {
+      coords: [47.2558, 39.7275],
+      category: 'mystery',
+      title: 'Инкогнито ???',
+      desc: 'Проверь эту точку и получи ПикПик-бонус!',
+      color: 'black'
     }
-    map.on('locationfound', onLocationFound);
+  ];
 
-    //const userMarker = L.marker([47.2162, 39.7084]).addTo(map).bindPopup('Вы здесь').openPopup();
+  function showAll() {
+  markers.forEach(m => {
+    m.options.set('visible', true);
+  });
+  }
 
-    const businesses = [
-      { name: "Пекарня Вкусно", category: "еда", coords: [47.2181, 39.7105] },
-      { name: "Автомойка Быстрая", category: "авто", coords: [47.2158, 39.7059] },
-      { name: "Салон Красоты 'Шик'", category: "красота", coords: [47.2175, 39.7118] },
-      { name: "Копи-центр 'Печать+'", category: "услуги", coords: [47.2149, 39.7074] },
-      { name: "Клиника 'Здоровье'", category: "здоровье", coords: [47.2169, 39.7090] }
-    ];
-
-    const colors = {
-      "еда": "red",
-      "авто": "blue",
-      "красота": "green",
-      "услуги": "orange",
-      "здоровье": "purple"
-    };
-
-    const markers = [];
-
-    businesses.forEach(biz => {
-      const marker = L.circleMarker(biz.coords, {
-        radius: 8,
-        color: colors[biz.category],
-        fillColor: colors[biz.category],
-        fillOpacity: 0.8
-      }).addTo(map).bindPopup(`<b>${biz.name}</b><br>${biz.category}`);
-      marker.category = biz.category;
-      markers.push(marker);
+  function init() {
+    map = new ymaps.Map("map", {
+      center: [47.2550, 39.7240],
+      zoom: 16
     });
 
-    function filterMarkers(category) {
-      markers.forEach(marker => {
-        if (category === 'all' || marker.category === category) {
-          marker.addTo(map);
-        } else {
-          map.removeLayer(marker);
-        }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const coords = [pos.coords.latitude, pos.coords.longitude];
+      const user = new ymaps.Placemark(coords, {
+        balloonContent: "Вы здесь"
+      }, {
+        preset: 'islands#circleIcon',
+        iconColor: 'red'
       });
-    }
-  </script>
+      map.geoObjects.add(user);
+    });
+
+    locations.forEach(loc => {
+      const mark = new ymaps.Placemark(loc.coords, {
+        balloonContent: `<b>${loc.title}</b><br>${loc.desc}<br><br>` +
+          (loc.category === 'mystery'
+            ? '<button onclick="alert(\'+1 ПикПик-бонус! 🏆\')">Проверить</button>'
+            : '')
+      }, {
+        preset: 'islands#circleDotIcon',
+        iconColor: loc.color
+      });
+      mark.properties.set('category', loc.category);
+      mark.options.set('visible', true);
+      map.geoObjects.add(mark);
+      markers.push(mark);
+    });
+  }
+
+  function filterMarkers(cat) {
+    markers.forEach(m => {
+      m.options.set('visible', m.properties.get('category') === cat);
+    });
+  }
+
+  ymaps.ready(init);
+</script>
+
 </body>
 </html>
