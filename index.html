@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>ПикПик Городская Карта</title>
+  <title>ПикПик MVP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=d2b331b6-f80a-43db-a345-6c5e2ffd3df4&lang=ru_RU&load=package.full" type="text/javascript"></script>
   <style>
     body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
     #map { width: 100%; height: 400px; }
-    .filters {
+    .filters, .profile {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
@@ -16,23 +16,33 @@
       padding: 10px;
       background: white;
     }
-    .filters button {
-      padding: 8px 14px;
-      border-radius: 20px;
+    .filters button, .profile div, .action-btn {
+      padding: 10px 16px;
+      border-radius: 24px;
       border: none;
       font-weight: bold;
       cursor: pointer;
       color: white;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+    .filters button:hover, .action-btn:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
     }
     .cafe { background-color: #8B4513; }
     .beauty { background-color: deeppink; }
     .fruit { background-color: green; }
     .section { background-color: blue; }
     .mystery { background-color: black; }
+    .all { background-color: gray; }
+    .score { background-color: orange; }
+    .clear { background-color: crimson; display: none; }
+    .route { background-color: #1E90FF; }
+    .check { background-color: #32CD32; margin-left: 5px; }
 
-    .locations {
-      padding: 15px;
-    }
+    .locations { padding: 15px; }
     .card {
       background: white;
       padding: 10px;
@@ -40,9 +50,7 @@
       margin-bottom: 10px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .card .title {
-      font-weight: bold;
-    }
+    .card .title { font-weight: bold; }
   </style>
 </head>
 <body>
@@ -50,70 +58,74 @@
 <div id="map"></div>
 
 <div class="filters">
-  <button onclick="showAll()" style="background-color: gray;">📍 Все</button>
+  <button class="all" onclick="showAll()">📍 Все</button>
   <button class="cafe" onclick="filterMarkers('cafe')">☕ Кафе</button>
   <button class="beauty" onclick="filterMarkers('beauty')">💅 Красота</button>
-  <button class="fruit" onclick="filterMarkers('fruit')">🍎 Фрукты/овощи</button>
+  <button class="fruit" onclick="filterMarkers('fruit')">🍎 Фрукты</button>
   <button class="section" onclick="filterMarkers('section')">🏃‍♂️ Секции</button>
   <button class="mystery" onclick="filterMarkers('mystery')">❓ Инкогнито</button>
+  <button class="clear" id="clearBtn" onclick="clearRoute()">🧹 Убрать маршрут</button>
 </div>
 
+<div class="profile">
+  <div class="score" id="score">🎯 Бонусы: 0</div>
+  <div class="score" id="rank">👤 Ранг: Новичок</div>
+</div>
 
 <div class="locations">
-  <h2>📍 Предложения рядом:</h2>
-  <div class="card"><span class="title">☕ КофеЛавка</span><br>Лучший капучино в районе</div>
-  <div class="card"><span class="title">💅 Салон "Лайм"</span><br>Маникюр и стрижки</div>
-  <div class="card"><span class="title">🍎 ЭкоЛавка</span><br>Фрукты и овощи от фермеров</div>
-  <div class="card"><span class="title">🏃‍♂️ Футбол-Детям</span><br>Детская футбольная секция</div>
-  <div class="card"><span class="title">❓ Инкогнито</span><br>Проверь точку и получи 🎁 ПикПик-бонус</div>
+  <h2>📍 Локации</h2>
+  <div class="card"><span class="title">☕ Кофелавка</span><br>Лучший кофе рядом</div>
+  <div class="card"><span class="title">💅 Салон "Лайм"</span><br>Стрижки и маникюр</div>
+  <div class="card"><span class="title">🍎 ЭкоЛавка</span><br>Фрукты от фермеров</div>
+  <div class="card"><span class="title">🏃‍♂️ Секция "Футбол-детям"</span><br>Детские тренировки</div>
+  <div class="card"><span class="title">❓ Инкогнито ???</span><br>Если рядом — получи бонус!</div>
 </div>
 
 <script>
   let map;
+  let score = 0;
+  let userCoords = null;
   let markers = [];
+  let activeRoute = null;
+  const useDemo = window.location.search.includes('debug=true');
 
-  const locations = [
-    {
-      coords: [47.2547, 39.7239],
-      category: 'cafe',
-      title: 'КофеЛавка',
-      desc: 'Лучший капучино в районе',
-      color: '#8B4513'
-    },
-    {
-      coords: [47.2555, 39.7245],
-      category: 'beauty',
-      title: 'Салон "Лайм"',
-      desc: 'Маникюр и стрижки',
-      color: 'deeppink'
-    },
-    {
-      coords: [47.2563, 39.7255],
-      category: 'fruit',
-      title: 'ЭкоЛавка',
-      desc: 'Фрукты и овощи от фермеров',
-      color: 'green'
-    },
-    {
-      coords: [47.2540, 39.7262],
-      category: 'section',
-      title: 'Футбол-Детям',
-      desc: 'Детская футбольная секция',
-      color: 'blue'
-    },
-    {
-      coords: [47.2558, 39.7275],
-      category: 'mystery',
-      title: 'Инкогнито ???',
-      desc: 'Проверь эту точку и получи ПикПик-бонус!',
-      color: 'black'
-    }
+  const ranks = [
+    { level: 0, name: "Новичок" },
+    { level: 3, name: "Знаток улицы" },
+    { level: 5, name: "Знаток еды" },
+    { level: 10, name: "Герой района" }
   ];
 
-  function showAll() {
-  markers.forEach(m => {
-    m.options.set('visible', true);
-  });
+  const locations = [
+    { coords: [47.2547, 39.7239], category: 'cafe', title: 'КофеЛавка', desc: 'Лучший кофе рядом', color: '#8B4513' },
+    { coords: [47.2555, 39.7245], category: 'beauty', title: 'Салон "Лайм"', desc: 'Стрижки и маникюр', color: 'deeppink' },
+    { coords: [47.2563, 39.7255], category: 'fruit', title: 'ЭкоЛавка', desc: 'Фрукты от фермеров', color: 'green' },
+    { coords: [47.2540, 39.7262], category: 'section', title: 'Футбол-Детям', desc: 'Детские тренировки', color: 'blue' },
+    { coords: [47.2558, 39.7275], category: 'mystery', title: 'Инкогнито ???', desc: 'Найди и получи бонус!', color: 'black' }
+  ];
+
+  function updateScore() {
+    document.getElementById('score').textContent = `🎯 Бонусы: ${score}`;
+    for (let i = ranks.length - 1; i >= 0; i--) {
+      if (score >= ranks[i].level) {
+        document.getElementById('rank').textContent = `👤 Ранг: ${ranks[i].name}`;
+        break;
+      }
+    }
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = deg => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function formatDistance(meters) {
+    return meters >= 1000 ? `~${(meters / 1000).toFixed(1)} км` : `~${meters} м`;
   }
 
   function init() {
@@ -122,27 +134,37 @@
       zoom: 16
     });
 
-    navigator.geolocation.getCurrentPosition(pos => {
-      const coords = [pos.coords.latitude, pos.coords.longitude];
-      const user = new ymaps.Placemark(coords, {
-        balloonContent: "Вы здесь"
-      }, {
-        preset: 'islands#circleIcon',
-        iconColor: 'red'
+    if (useDemo) {
+      userCoords = [47.2558, 39.7270];
+      afterLocation();
+    } else {
+      navigator.geolocation.getCurrentPosition(pos => {
+        userCoords = [pos.coords.latitude, pos.coords.longitude];
+        afterLocation();
       });
-      map.geoObjects.add(user);
+    }
+  }
+
+  function afterLocation() {
+    const userMark = new ymaps.Placemark(userCoords, {
+      balloonContent: "Вы здесь"
+    }, {
+      preset: 'islands#circleIcon', iconColor: 'red'
     });
+    map.geoObjects.add(userMark);
 
     locations.forEach(loc => {
+      const dist = Math.round(getDistance(userCoords[0], userCoords[1], loc.coords[0], loc.coords[1]));
+      const balloon = `<b>${loc.title}</b><br>${loc.desc}<br>📏 ${formatDistance(dist)}<br><br>` +
+        `<button class='action-btn route' onclick='buildRoute(${JSON.stringify(loc.coords)})'>Маршрут</button>` +
+        (loc.category === 'mystery' ? ` <button class='action-btn check' onclick='checkMystery(${JSON.stringify(loc.coords)})'>Проверить</button>` : '');
+
       const mark = new ymaps.Placemark(loc.coords, {
-        balloonContent: `<b>${loc.title}</b><br>${loc.desc}<br><br>` +
-          (loc.category === 'mystery'
-            ? '<button onclick="alert(\'+1 ПикПик-бонус! 🏆\')">Проверить</button>'
-            : '')
+        balloonContent: balloon
       }, {
-        preset: 'islands#circleDotIcon',
-        iconColor: loc.color
+        preset: 'islands#circleDotIcon', iconColor: loc.color
       });
+
       mark.properties.set('category', loc.category);
       mark.options.set('visible', true);
       map.geoObjects.add(mark);
@@ -150,10 +172,47 @@
     });
   }
 
+  function checkMystery(coords) {
+    if (!userCoords) return alert('Местоположение не определено');
+    const dist = getDistance(userCoords[0], userCoords[1], coords[0], coords[1]);
+    if (dist < 50) {
+      alert('+1 ПикПик-бонус! 🏆');
+      score++;
+      updateScore();
+    } else {
+      alert('Вы слишком далеко от точки. Подойдите ближе!');
+    }
+  }
+
   function filterMarkers(cat) {
     markers.forEach(m => {
       m.options.set('visible', m.properties.get('category') === cat);
     });
+  }
+
+  function showAll() {
+    markers.forEach(m => m.options.set('visible', true));
+  }
+
+  function buildRoute(destCoords) {
+    if (!userCoords) return alert('Местоположение не определено');
+    if (activeRoute) map.geoObjects.remove(activeRoute);
+
+    activeRoute = new ymaps.multiRouter.MultiRoute({
+      referencePoints: [userCoords, destCoords],
+      params: { routingMode: 'pedestrian' }
+    }, { boundsAutoApply: true });
+
+    document.getElementById('clearBtn').style.display = 'inline-block';
+    map.geoObjects.add(activeRoute);
+  }
+
+  function clearRoute() {
+    if (activeRoute) {
+      map.geoObjects.remove(activeRoute);
+      activeRoute = null;
+    }
+    document.getElementById('clearBtn').style.display = 'none';
   }
 
   ymaps.ready(init);
